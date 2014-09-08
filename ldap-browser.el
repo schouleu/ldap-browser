@@ -55,11 +55,14 @@
   "Major mode for ldap browser.")
 
 (defun ldap-browser-view ()
+  "View contact details in a dedicated buffer"
   (interactive)
-  (let ((id (tabulated-list-get-id)))
-    (pop-to-buffer (get-buffer-create (format ldap-contact-buffer id)))n
+  (let ((id (tabulated-list-get-id))
+	(entries ldap-browser-entries))
+    (pop-to-buffer (get-buffer-create (format ldap-contact-buffer id)))
     (erase-buffer)
-    (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x)))) (find id (buffer-local-value 'ldap-browser-entries (get-buffer ldap-browser-buffer)) :key (lambda(x)(assoc-default "dn" x)) :test 'equal))))
+    (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x))))
+	    (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal))))
 
 (defvar ldap-browser-mode-map
   (let ((map (make-sparse-keymap))
@@ -75,7 +78,7 @@
     (setq ldap-browser-entries nil)
     (ldap-browser-update)))
 
-(defun ldap-browser-update()
+(defun ldap-browser-update ()
   "Populates browser with found entries"
   (interactive)
   (with-current-buffer (get-create-ldap-browser-buffer)
@@ -125,7 +128,7 @@
     (ldap-browser-update)
     (pop-to-buffer ldap-browser-buffer)
     (unless (equal change "finished\n")
-      (error "ldapsearch2: %s" change))))
+      (error "ldapsearch: %s" change))))
 
 (defun ldap-browser-search (filter)
   "Fetch ldap entries filtered by FILTER on displayName.

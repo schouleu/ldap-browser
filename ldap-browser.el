@@ -52,7 +52,8 @@
 			    ("mailNickname" . ("Nickname" 10 t))))
 
 (define-derived-mode ldap-browser-mode tabulated-list-mode "Ldap Browser"
-  "Major mode for ldap browser.")
+  "Major mode for ldap browser."
+  (use-local-map ldap-browser-mode-map))
 
 (defun ldap-browser-view ()
   "View contact details in a dedicated buffer"
@@ -60,9 +61,13 @@
   (let ((id (tabulated-list-get-id))
 	(entries ldap-browser-entries))
     (pop-to-buffer (get-buffer-create (format ldap-contact-buffer id)))
-    (erase-buffer)
-    (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x))))
-	    (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal))))
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x))))
+	      (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal))
+      (align-regexp (point-min) (point-max) "\\(\\s-*\\) = " 1 1)
+      (goto-char (point-min))
+      (view-mode))))
 
 (defvar ldap-browser-mode-map
   (let ((map (make-sparse-keymap))

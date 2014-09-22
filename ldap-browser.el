@@ -9,14 +9,21 @@
 ;; Requires: ldapsearch
 
 ;; Usage:
-;;   - customize 'ldap-username and 'ldap-password variables
+;;   - customize 'ldap-username, 'ldap-password and 'ldap-servers variables
 ;;   - load this script using (require 'ldap-browser)
-;;   - M-x ldap-browser-search
-;;       Provide a name to search with wildcard *
+;;   - M-x ldap-browser-search-name
+;;       Provide a name to search, using regexp syntax (e.g: *name*)
 ;;       Results will be displayed in *ldap-browser* buffer
+;;   - M-x ldap-browser-insert-mail
+;;       Provide a name to search, the result's mail will be inserted
+;;       in current buffer if unique. If case of multiple results,
+;;       *ldap-browser* buffer is opened to let the user select the
+;;       good one. Hit RET to insert the email of selected contact.
 ;;
 ;; *ldap-browser* navigation:
-;;    Use "v" to open contact card and see all LDAP fields available
+;;    - "v"   : open contact card and see all LDAP fields available
+;;    - "g"   : refresh buffer
+;;    - "RET" : apply current action on contact. If no action available, do as "v"
 
 ;; This file is *NOT* part of GNU Emacs.
 ;; This file is distributed under the same terms as GNU Emacs.

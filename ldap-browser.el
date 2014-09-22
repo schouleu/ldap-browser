@@ -193,4 +193,16 @@ For obscure reasons, with a star at the beginning of the string the ldap query f
   (interactive "sName: ")
   (ldap-browser-search-fields name '("displayName" "mail") callback))
 
+(defun ldap-browser-insert-mail-callback (buffer contact)
+  "To be used as a search callback to insert result's email in current buffer"
+  (when contact
+    (with-current-buffer buffer
+      (insert (concat (assoc-default "mail" contact) " ")))))
+
+(defun ldap-browser-insert-mail (name)
+  "Get a contact's email
+If multiple results are found, ldap-browser buffer is opened to choose the right one by typing <Enter>"
+  (interactive "sName: ")
+  (ldap-browser-search-name name (curry 'ldap-browser-insert-mail-callback (current-buffer))))
+
 (provide 'ldap-browser)

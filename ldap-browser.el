@@ -130,16 +130,23 @@
     (unless (equal change "finished\n")
       (error "ldapsearch: %s" change))))
 
-(defun ldap-browser-search (filter)
+(defun ldap-browser-search-fields (pattern fields)
   "Fetch ldap entries filtered by FILTER on displayName.
 You can use * as wildcard, but ensure that it's placed at the end of the string.
 For obscure reasons, with a star at the beginning of the string the ldap query fails with a timeout..."
-  (interactive "sName: ")
   (ldap-browser-clear)
   (dolist (server ldap-servers)
     (with-current-buffer (get-buffer-create (format ldap-result-buffer-format (car server)))
       (erase-buffer)
-      (let ((cmd (format "%s -h %s -D %s -b %s -w %s (displayName=%s)" ldap-search-args (car server) ldap-username (cdr server) ldap-password filter)))
-	(set-process-sentinel (apply 'start-process "ldapsearch" (current-buffer) "ldapsearch" (split-string cmd)) 'ldap-search-sentinel)))))
+      (let* ((filter (mapconcat (lambda(x)(format "(%s=%s)" x pattern)) fields ""))
+	     (cmd (format "%s -h %s -D %s -b %s -w %s (|%s)" ldap-search-args (car server) ldap-username (cdr server) ldap-password filter)))
+	(message "cmd=%s" cmd)
+	(set-process-sentinel (apply 'start-process "ldapsearch" (current-buffer) "ldapsearch" (split-string cmd)) 'ldap-search-sentinel))
+      )))
+
+(defun ldap-browser-search-name (name)
+  "Search pattern in fields \"displayName\" and \"mail\""
+  (interactive "sName: ")
+  (ldap-browser-search-fields name '("displayName" "mail")))
 
 (provide 'ldap-browser)

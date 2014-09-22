@@ -55,25 +55,39 @@
   "Major mode for ldap browser."
   (use-local-map ldap-browser-mode-map))
 
+(defun ldap-browser-get-contact (&optional id)
+  "Return specified contact, or current one if not specified"
+  (let ((id (or id (tabulated-list-get-id)))
+	(entries ldap-browser-entries))
+    (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal)))
+
 (defun ldap-browser-view ()
   "View contact details in a dedicated buffer"
   (interactive)
-  (let ((id (tabulated-list-get-id))
-	(entries ldap-browser-entries))
+  (let ((id (tabulated-list-get-id)))
     (pop-to-buffer (get-buffer-create (format ldap-contact-buffer id)))
     (let ((inhibit-read-only t))
       (erase-buffer)
       (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x))))
-	      (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal))
+	      (ldap-browser-get-contact id))
       (align-regexp (point-min) (point-max) "\\(\\s-*\\) = " 1 1)
       (goto-char (point-min))
       (view-mode))))
+
+(defun ldap-browser-action ()
+  "If `ldap-browser-callback' is a function, then call it, else call `ldap-browser-view'"
+  (interactive)
+  (if (functionp ldap-browser-callback)
+      (funcall ldap-browser-callback (ldap-browser-get-contact))
+    (ldap-browser-view)))
 
 (defvar ldap-browser-mode-map
   (let ((map (make-sparse-keymap))
 	(menu-map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
     (define-key map "v" 'ldap-browser-view)
+    (define-key map "g" 'ldap-browser-update)
+    (define-key map (kbd "RET") 'ldap-browser-action)
     map))
 
 (defun ldap-browser-clear ()
@@ -82,6 +96,11 @@
   (with-current-buffer (get-create-ldap-browser-buffer)
     (setq ldap-browser-entries nil)
     (ldap-browser-update)))
+
+(defun ldap-browser-set-callback (callback)
+  "set variable ldap-browser-callback"
+  (with-current-buffer (get-create-ldap-browser-buffer)
+    (setq-local ldap-browser-callback callback)))
 
 (defun ldap-browser-update ()
   "Populates browser with found entries"
@@ -117,6 +136,21 @@
     (or (and ldap-browser-entries (nconc ldap-browser-entries (list entry)))
 	(setq ldap-browser-entries (list entry)))))
 
+(defun ldap-browser-remaining-requests ()
+  "Return the amount of on-going requests"
+  (let ((ongoing 0))
+    (dolist (server ldap-servers ongoing)
+      (let (buf (get-buffer (format ldap-result-buffer-format (car server))))
+	(and buf (get-buffer-process) (setq ongoing (+ ongoing 1)))))))
+
+(defun ldap-browser-may-callback ()
+  "Call the `ldap-browser-callback' function if not nil and no more ldap requests remaining"
+  (with-current-buffer (get-buffer ldap-browser-buffer)
+    (when (functionp ldap-browser-callback)
+      (if (= 1 (length ldap-browser-entries))
+	  (funcall ldap-browser-callback (ldap-browser-get-contact))
+	(pop-to-buffer ldap-browser-buffer)))))
+
 (defun ldap-parse-results (add-func)
   "Parse ldapsearch output to find entries and call add-func for each found entry"
   (goto-char (point-min))
@@ -131,27 +165,32 @@
   (with-current-buffer (process-buffer process)
     (ldap-parse-results 'ldap-browser-add-entry)
     (ldap-browser-update)
-    (pop-to-buffer ldap-browser-buffer)
+    (when (= 0 (ldap-browser-remaining-requests))
+      (ldap-browser-may-callback)
+      (when (= 0 (length ldap-browser-entries))
+	(error "ldap-browser: No results")))
+    (unless (buffer-local-value 'ldap-browser-callback (get-buffer ldap-browser-buffer))
+      (pop-to-buffer ldap-browser-buffer))
     (unless (equal change "finished\n")
       (error "ldapsearch: %s\n See buffer %s for details" change (process-buffer process)))))
 
-(defun ldap-browser-search-fields (pattern fields)
+(defun ldap-browser-search-fields (pattern fields &optional callback)
   "Fetch ldap entries filtered by FILTER on displayName.
 You can use * as wildcard, but ensure that it's placed at the end of the string.
 For obscure reasons, with a star at the beginning of the string the ldap query fails with a timeout..."
   (ldap-browser-clear)
+  (ldap-browser-set-callback callback)
   (dolist (server ldap-servers)
     (with-current-buffer (get-buffer-create (format ldap-result-buffer-format (car server)))
       (erase-buffer)
       (let* ((filter (mapconcat (lambda(x)(format "(%s=%s)" x pattern)) fields ""))
 	     (cmd (format "%s -h %s -D %s -b %s -w %s (|%s)" ldap-search-args (car server) ldap-username (cdr server) ldap-password filter)))
-	(message "cmd=%s" cmd)
 	(set-process-sentinel (apply 'start-process "ldapsearch" (current-buffer) "ldapsearch" (split-string cmd)) 'ldap-search-sentinel))
       )))
 
-(defun ldap-browser-search-name (name)
+(defun ldap-browser-search-name (name &optional callback)
   "Search pattern in fields \"displayName\" and \"mail\""
   (interactive "sName: ")
-  (ldap-browser-search-fields name '("displayName" "mail")))
+  (ldap-browser-search-fields name '("displayName" "mail") callback))
 
 (provide 'ldap-browser)

@@ -133,7 +133,7 @@
     (ldap-browser-update)
     (pop-to-buffer ldap-browser-buffer)
     (unless (equal change "finished\n")
-      (error "ldapsearch: %s" change))))
+      (error "ldapsearch: %s\n See buffer %s for details" change (process-buffer process)))))
 
 (defun ldap-browser-search-fields (pattern fields)
   "Fetch ldap entries filtered by FILTER on displayName.

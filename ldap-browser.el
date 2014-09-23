@@ -64,9 +64,10 @@
 
 (defun ldap-browser-get-contact (&optional id)
   "Return specified contact, or current one if not specified"
-  (let ((id (or id (tabulated-list-get-id)))
-	(entries ldap-browser-entries))
-    (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal)))
+  (with-current-buffer (get-buffer ldap-browser-buffer)
+    (let ((id (or id (tabulated-list-get-id)))
+	  (entries ldap-browser-entries))
+      (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal))))
 
 (defun ldap-browser-view ()
   "View contact details in a dedicated buffer"
@@ -147,8 +148,8 @@
   "Return the amount of on-going requests"
   (let ((ongoing 0))
     (dolist (server ldap-servers ongoing)
-      (let (buf (get-buffer (format ldap-result-buffer-format (car server))))
-	(and buf (get-buffer-process) (setq ongoing (+ ongoing 1)))))))
+      (let ((buf (get-buffer (format ldap-result-buffer-format (car server)))))
+	(and buf (get-buffer-process buf) (setq ongoing (+ ongoing 1)))))))
 
 (defun ldap-browser-may-callback ()
   "Call the `ldap-browser-callback' function if not nil and no more ldap requests remaining"
@@ -174,7 +175,7 @@
     (ldap-browser-update)
     (when (= 0 (ldap-browser-remaining-requests))
       (ldap-browser-may-callback)
-      (when (= 0 (length ldap-browser-entries))
+      (when (= 0 (length (buffer-local-value 'ldap-browser-entries (get-buffer ldap-browser-buffer))))
 	(error "ldap-browser: No results")))
     (unless (buffer-local-value 'ldap-browser-callback (get-buffer ldap-browser-buffer))
       (pop-to-buffer ldap-browser-buffer))

@@ -102,6 +102,7 @@
   "Flush ldap-browser entries"
   (interactive)
   (with-current-buffer (get-create-ldap-browser-buffer)
+    (setq-local progress (make-progress-reporter "LDAP searching:" 0 (length ldap-servers)))
     (setq ldap-browser-entries nil)
     (ldap-browser-update)))
 
@@ -171,16 +172,19 @@
 
 (defun ldap-search-sentinel (process change)
   (with-current-buffer (process-buffer process)
-    (ldap-parse-results 'ldap-browser-add-entry)
-    (ldap-browser-update)
-    (when (= 0 (ldap-browser-remaining-requests))
-      (ldap-browser-may-callback)
-      (when (= 0 (length (buffer-local-value 'ldap-browser-entries (get-buffer ldap-browser-buffer))))
-	(error "ldap-browser: No results")))
-    (unless (buffer-local-value 'ldap-browser-callback (get-buffer ldap-browser-buffer))
-      (pop-to-buffer ldap-browser-buffer))
-    (unless (equal change "finished\n")
-      (error "ldapsearch: %s\n See buffer %s for details" change (process-buffer process)))))
+      (ldap-parse-results 'ldap-browser-add-entry))
+  (with-current-buffer (get-buffer ldap-browser-buffer)
+    (let ((remaining (ldap-browser-remaining-requests)))
+      (progress-reporter-update progress (- (length ldap-servers) remaining))
+      (ldap-browser-update)
+      (when (= 0 remaining)
+	(ldap-browser-may-callback)
+	(when (= 0 (length ldap-browser-entries))
+	  (error "ldap-browser: No results")))
+      (unless ldap-browser-callback
+	(pop-to-buffer ldap-browser-buffer))
+      (unless (equal change "finished\n")
+	(error "ldapsearch: %s\n See buffer %s for details" change (process-buffer process))))))
 
 (defun ldap-browser-search-fields (pattern fields &optional callback)
   "Fetch ldap entries filtered by FILTER on displayName.

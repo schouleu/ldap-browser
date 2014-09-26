@@ -59,6 +59,26 @@
 			    ("mail" . ("Email" 40 t))
 			    ("mailNickname" . ("Nickname" 10 t))))
 
+(defsubst curry (function &rest arguments)
+  (lexical-let ((function function)
+		(arguments arguments))
+    (lambda (&rest more) (apply function (append arguments more)))))
+
+(defsubst icurry (function &rest arguments)
+  (lexical-let ((function function)
+		(arguments arguments))
+    (lambda (&rest more) (interactive) (apply function (append arguments more)))))
+
+(defvar ldap-browser-mode-map
+  (let ((map (make-sparse-keymap))
+	(menu-map (make-sparse-keymap)))
+    (set-keymap-parent map tabulated-list-mode-map)
+    (define-key map "v" (icurry 'ldap-browser-action 'ldap-browser-view-contact))
+    (define-key map "g" 'ldap-browser-update)
+    (define-key map "a" (icurry 'ldap-browser-action 'ldap-browser-add-purple-buddy-callback))
+    (define-key map (kbd "RET") 'ldap-browser-action)
+    map))
+
 (define-derived-mode ldap-browser-mode tabulated-list-mode "Ldap Browser"
   "Major mode for ldap browser."
   (use-local-map ldap-browser-mode-map))
@@ -90,16 +110,6 @@
 		    (and (functionp ldap-browser-callback) ldap-browser-callback)
 		    'ldap-browser-view-contact)))
     (funcall action (ldap-browser-get-contact))))
-
-(defvar ldap-browser-mode-map
-  (let ((map (make-sparse-keymap))
-	(menu-map (make-sparse-keymap)))
-    (set-keymap-parent map tabulated-list-mode-map)
-    (define-key map "v" (icurry 'ldap-browser-action 'ldap-browser-view-contact))
-    (define-key map "g" 'ldap-browser-update)
-    (define-key map "a" (icurry 'ldap-browser-action 'ldap-browser-add-purple-buddy-callback))
-    (define-key map (kbd "RET") 'ldap-browser-action)
-    map))
 
 (defun ldap-browser-clear ()
   "Flush ldap-browser entries"

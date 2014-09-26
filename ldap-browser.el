@@ -23,6 +23,7 @@
 ;; *ldap-browser* navigation:
 ;;    - "v"   : open contact card and see all LDAP fields available
 ;;    - "g"   : refresh buffer
+;;    - "a"   : add contact to purple buddies
 ;;    - "RET" : apply current action on contact. If no action available, do as "v"
 
 ;; This file is *NOT* part of GNU Emacs.
@@ -69,32 +70,34 @@
 	  (entries ldap-browser-entries))
       (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal))))
 
-(defun ldap-browser-view ()
+(defun ldap-browser-view-contact (contact)
   "View contact details in a dedicated buffer"
-  (interactive)
-  (let ((id (tabulated-list-get-id)))
-    (pop-to-buffer (get-buffer-create (format ldap-contact-buffer id)))
+    (pop-to-buffer (get-buffer-create (format ldap-contact-buffer (assoc-default "dn" contact))))
     (let ((inhibit-read-only t))
       (erase-buffer)
-      (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x))))
-	      (ldap-browser-get-contact id))
+      (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x)))) contact)
       (align-regexp (point-min) (point-max) "\\(\\s-*\\) = " 1 1)
       (goto-char (point-min))
-      (view-mode))))
+      (view-mode)))
 
-(defun ldap-browser-action ()
-  "If `ldap-browser-callback' is a function, then call it, else call `ldap-browser-view'"
+(defun ldap-browser-action (&optional action)
+  "Try to call in order (first existing wins)
+ - action if non-nil
+ - `ldap-browser-callback' if a valid function
+ - `ldap-browser-view'"
   (interactive)
-  (if (functionp ldap-browser-callback)
-      (funcall ldap-browser-callback (ldap-browser-get-contact))
-    (ldap-browser-view)))
+  (let ((action (or action
+		    (and (functionp ldap-browser-callback) ldap-browser-callback)
+		    'ldap-browser-view-contact)))
+    (funcall action (ldap-browser-get-contact))))
 
 (defvar ldap-browser-mode-map
   (let ((map (make-sparse-keymap))
 	(menu-map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
-    (define-key map "v" 'ldap-browser-view)
+    (define-key map "v" (icurry 'ldap-browser-action 'ldap-browser-view-contact))
     (define-key map "g" 'ldap-browser-update)
+    (define-key map "a" (icurry 'ldap-browser-action 'ldap-browser-add-purple-buddy-callback))
     (define-key map (kbd "RET") 'ldap-browser-action)
     map))
 
@@ -228,5 +231,21 @@ If multiple results are found, ldap-browser buffer is opened to choose the right
 If multiple results are found, ldap-browser buffer is opened to choose the right one by typing <Enter>"
   (interactive "sName: ")
   (ldap-browser-search-name name (curry 'ldap-browser-insert-formatted-mail-callback (current-buffer))))
+
+(eval-after-load "purple" '(def-ldap-browser-purple))
+(defun def-ldap-browser-purple ()
+  "Load purple plugins"
+  (defun ldap-browser-add-purple-buddy-callback (contact)
+    "Add selected contact to purple buddy list"
+    (message "bla")
+    (purple-buddy-add
+     (purple-account-completing-read)
+     (concat "sip:" (assoc-default "mail" contact))
+     (read-string "Alias: " (assoc-default "displayName" contact))
+     (purple-group-completing-read "Add into group: ")))
+  (defun ldap-browser-add-purple-buddy (name)
+    "Add selected contact to purple buddy list"
+    (interactive "sName: ")
+    (ldap-browser-search-name name 'ldap-browser-add-purple-buddy-callback)))
 
 (provide 'ldap-browser)

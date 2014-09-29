@@ -220,44 +220,4 @@ For obscure reasons, with a star at the beginning of the string the ldap query f
   (interactive "sName: ")
   (ldap-browser-search-fields name '("displayName" "mail") callback))
 
-(defun ldap-browser-insert-mail-callback (buffer contact)
-  "To be used as a search callback to insert result's email in current buffer"
-  (when contact
-    (with-current-buffer buffer
-      (insert (concat (assoc-default "mail" contact) " ")))))
-
-(defun ldap-browser-insert-formatted-mail-callback (buffer contact)
-  "To be used as a search callback to insert result's formatted email in current buffer"
-  (when contact
-    (with-current-buffer buffer
-      (insert (format "\"%s\" <%s> " (assoc-default "displayName" contact) (assoc-default "mail" contact))))))
-
-(defun ldap-browser-insert-mail (name)
-  "Get a contact's email
-If multiple results are found, ldap-browser buffer is opened to choose the right one by typing <Enter>"
-  (interactive "sName: ")
-  (ldap-browser-search-name name (curry 'ldap-browser-insert-mail-callback (current-buffer))))
-
-(defun ldap-browser-insert-formatted-mail (name)
-  "Insert mailer formatted contact's email
-If multiple results are found, ldap-browser buffer is opened to choose the right one by typing <Enter>"
-  (interactive "sName: ")
-  (ldap-browser-search-name name (curry 'ldap-browser-insert-formatted-mail-callback (current-buffer))))
-
-(defun def-ldap-browser-purple ()
-  "Load purple plugins"
-  (defun ldap-browser-add-purple-buddy-callback (contact)
-    "Add selected contact to purple buddy list"
-    (message "bla")
-    (purple-buddy-add
-     (purple-account-completing-read)
-     (concat "sip:" (assoc-default "mail" contact))
-     (read-string "Alias: " (assoc-default "displayName" contact))
-     (purple-group-completing-read "Add into group: ")))
-  (defun ldap-browser-add-purple-buddy (name)
-    "Add selected contact to purple buddy list"
-    (interactive "sName: ")
-    (ldap-browser-search-name name 'ldap-browser-add-purple-buddy-callback)))
-(eval-after-load "purple" '(def-ldap-browser-purple))
-
 (provide 'ldap-browser)

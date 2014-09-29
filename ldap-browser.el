@@ -244,7 +244,6 @@ If multiple results are found, ldap-browser buffer is opened to choose the right
   (interactive "sName: ")
   (ldap-browser-search-name name (curry 'ldap-browser-insert-formatted-mail-callback (current-buffer))))
 
-(eval-after-load "purple" '(def-ldap-browser-purple))
 (defun def-ldap-browser-purple ()
   "Load purple plugins"
   (defun ldap-browser-add-purple-buddy-callback (contact)
@@ -259,5 +258,6 @@ If multiple results are found, ldap-browser buffer is opened to choose the right
     "Add selected contact to purple buddy list"
     (interactive "sName: ")
     (ldap-browser-search-name name 'ldap-browser-add-purple-buddy-callback)))
+(eval-after-load "purple" '(def-ldap-browser-purple))
 
 (provide 'ldap-browser)

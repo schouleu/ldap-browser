@@ -48,8 +48,15 @@
 ;;
 ;; http://www.fsf.org/copyleft/gpl.html
 
-(defvar ldap-servers '(("ldap1.example.com" . "ou=Workers,dc=ldap1,dc=example,dc=com")
-		       ("ldap1.example.com" . "ou=Workers,dc=ldap2,dc=example,dc=com")))
+(defgroup ldap-browser nil
+  "LDAP-browser group"
+  :group 'network)
+
+(defcustom ldap-servers nil
+  "'((\"ldap1.example.com\" . \"ou=Workers,dc=ldap1,dc=example,dc=com\")
+    (\"ldap1.example.com\" . \"ou=Workers,dc=ldap2,dc=example,dc=com\")))"
+  :group 'ldap-browser)
+
 (defvar ldap-search-args "-LLL -t -o ldif-wrap=no -z none")
 (defvar ldap-result-buffer-format "*ldap-result<%s>*")
 (defvar ldap-contact-buffer "*ldap-contact<%s>*")

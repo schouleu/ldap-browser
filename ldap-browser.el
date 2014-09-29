@@ -9,7 +9,9 @@
 ;; Requires: ldapsearch
 
 ;; Usage:
-;;   - customize 'ldap-username, 'ldap-password and 'ldap-servers variables
+;;   - customize 'ldap-servers variable
+;;   - Be sure to populate your ~/.authinfo file to provide login and
+;;     password for each of the servers in 'ldap-servers
 ;;   - load this script using (require 'ldap-browser)
 ;;   - M-x ldap-browser-search-name
 ;;       Provide a name to search, using regexp syntax (e.g: *name*)
@@ -46,8 +48,6 @@
 ;;
 ;; http://www.fsf.org/copyleft/gpl.html
 
-(defvar ldap-username "username@example.com")
-(defvar ldap-password (netrc-get-password "example.com"))
 (defvar ldap-servers '(("ldap1.example.com" . "ou=Workers,dc=ldap1,dc=example,dc=com")
 		       ("ldap1.example.com" . "ou=Workers,dc=ldap2,dc=example,dc=com")))
 (defvar ldap-search-args "-LLL -t -o ldif-wrap=no -z none")
@@ -209,6 +209,8 @@ For obscure reasons, with a star at the beginning of the string the ldap query f
     (with-current-buffer (get-buffer-create (format ldap-result-buffer-format (car server)))
       (erase-buffer)
       (let* ((filter (mapconcat (lambda(x)(format "(%s=%s)" x pattern)) fields ""))
+	     (ldap-username (auth-source-user-or-password "login" server "ldap"))
+	     (ldap-password (auth-source-user-or-password "password" server "ldap"))
 	     (cmd (format "%s -h %s -D %s -b %s -w %s (|%s)" ldap-search-args (car server) ldap-username (cdr server) ldap-password filter)))
 	(set-process-sentinel (apply 'start-process "ldapsearch" (current-buffer) "ldapsearch" (split-string cmd)) 'ldap-search-sentinel))
       )))

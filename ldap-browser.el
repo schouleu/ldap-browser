@@ -65,6 +65,7 @@
 			    ("title" . ("ID" 10 t))
 			    ("mail" . ("Email" 40 t))
 			    ("mailNickname" . ("Nickname" 10 t))))
+(defvar ldap-browser-search-history '())
 
 (defsubst curry (function &rest arguments)
   (lexical-let ((function function)
@@ -224,7 +225,7 @@ For obscure reasons, with a star at the beginning of the string the ldap query f
 
 (defun ldap-browser-search-name (name &optional callback)
   "Search pattern in fields \"displayName\" and \"mail\""
-  (interactive "sName: ")
+  (interactive (list (read-string "Name: " nil 'ldap-browser-search-history)))
   (ldap-browser-search-fields name '("displayName" "mail") callback))
 
 (provide 'ldap-browser)

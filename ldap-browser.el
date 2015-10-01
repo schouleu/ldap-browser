@@ -57,7 +57,7 @@
     (\"ldap1.example.com\" . \"ou=Workers,dc=ldap2,dc=example,dc=com\")))"
   :group 'ldap-browser)
 
-(defvar ldap-search-args "-LLL -t -o ldif-wrap=no -z none")
+(defvar ldap-search-args "-LLL -t -o ldif-wrap=no -z none -T /tmp/ldapsearch")
 (defvar ldap-result-buffer-format "*ldap-result<%s>*")
 (defvar ldap-contact-buffer "*ldap-contact<%s>*")
 (defvar ldap-browser-buffer "*ldap-browser*")

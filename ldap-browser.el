@@ -54,7 +54,7 @@
 
 (defcustom ldap-servers nil
   "'((\"ldap1.example.com\" . \"ou=Workers,dc=ldap1,dc=example,dc=com\")
-    (\"ldap1.example.com\" . \"ou=Workers,dc=ldap2,dc=example,dc=com\")))"
+    (\"ldap1.example.com\" . \"ou=Workers,dc=ldap2,dc=example,dc=com\"))"
   :group 'ldap-browser)
 
 (defvar ldap-search-args "-LLL -t -o ldif-wrap=no -z none -T /tmp/ldapsearch")
@@ -62,9 +62,8 @@
 (defvar ldap-contact-buffer "*ldap-contact<%s>*")
 (defvar ldap-browser-buffer "*ldap-browser*")
 (defvar ldap-browser-cols '(("cn" . ("Name" 29 t))
-			    ("title" . ("ID" 10 t))
 			    ("mail" . ("Email" 40 t))
-			    ("mailNickname" . ("Nickname" 10 t))))
+			    ("uid" . ("Nickname" 10 t))))
 (defvar ldap-browser-search-history '())
 
 (defsubst curry (function &rest arguments)
@@ -217,15 +216,15 @@ For obscure reasons, with a star at the beginning of the string the ldap query f
     (with-current-buffer (get-buffer-create (format ldap-result-buffer-format (car server)))
       (erase-buffer)
       (let* ((filter (mapconcat (lambda(x)(format "(%s=%s)" x pattern)) fields ""))
-	     (ldap-username (auth-source-user-or-password "login" server "ldap"))
-	     (ldap-password (auth-source-user-or-password "password" server "ldap"))
+	     (ldap-username (auth-source-user-or-password "login" (car server) "ldap"))
+	     (ldap-password (auth-source-user-or-password "password" (car server) "ldap"))
 	     (cmd (format "%s -h %s -D %s -b %s -w %s (|%s)" ldap-search-args (car server) ldap-username (cdr server) ldap-password filter)))
 	(set-process-sentinel (apply 'start-process "ldapsearch" (current-buffer) "ldapsearch" (split-string cmd)) 'ldap-search-sentinel))
       )))
 
 (defun ldap-browser-search-name (name &optional callback)
-  "Search pattern in fields \"displayName\" and \"mail\""
+  "Search pattern in fields \"displayName\" and \"sn\""
   (interactive (list (read-string "Name: " nil 'ldap-browser-search-history)))
-  (ldap-browser-search-fields name '("displayName" "mail") callback))
+  (ldap-browser-search-fields name '("displayName" "sn") callback))
 
 (provide 'ldap-browser)

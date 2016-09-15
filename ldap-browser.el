@@ -57,7 +57,7 @@
     (\"ldap1.example.com\" . \"ou=Workers,dc=ldap2,dc=example,dc=com\"))"
   :group 'ldap-browser)
 
-(defvar ldap-search-args "-LLL -t -o ldif-wrap=no -z none -T /tmp/ldapsearch")
+(defvar ldap-search-args "-LLL -o ldif-wrap=no -z none -T /tmp/ldapsearch")
 (defvar ldap-result-buffer-format "*ldap-result<%s>*")
 (defvar ldap-contact-buffer "*ldap-contact<%s>*")
 (defvar ldap-browser-buffer "*ldap-browser*")
@@ -97,12 +97,19 @@
 	  (entries ldap-browser-entries))
       (find id entries :key (lambda(x)(assoc-default "dn" x)) :test 'equal))))
 
+(defun ascii-clear (string)
+  "If string terminates by two '=' characters, returns base64 decoded string.
+Otherwise returns original string."
+  (if (string-suffix-p "==" string)
+      (shell-command-to-string (format  "echo %s | base64 -d" string))
+    string))
+
 (defun ldap-browser-view-contact (contact)
   "View contact details in a dedicated buffer"
     (pop-to-buffer (get-buffer-create (format ldap-contact-buffer (assoc-default "dn" contact))))
     (let ((inhibit-read-only t))
       (erase-buffer)
-      (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (cdr x)))) contact)
+      (mapcar (lambda(x)(insert (format "%s = %s\n" (car x) (ascii-clear (cdr x))))) contact)
       (align-regexp (point-min) (point-max) "\\(\\s-*\\) = " 1 1)
       (goto-char (point-min))
       (view-mode)))
@@ -186,8 +193,8 @@
   (while (search-forward-regexp "^dn: " nil t)
     (let ((entry `(("dn" . ,(buffer-substring-no-properties (point) (point-at-eol)))))
 	  (bound (save-excursion (search-forward-regexp "^$"))))
-      (while (search-forward-regexp "^\\(\\w+\\):<? \\(.*\\)" bound t)
-	(nconc entry (list (cons (match-string 1) (match-string 2)))))
+      (while (search-forward-regexp "^\\(\\w+\\):+<? \\(.*\\)" bound t)
+	(nconc entry (list (cons (match-string 1) (ascii-clear (match-string 2))))))
       (funcall add-func entry))))
 
 (defun ldap-search-sentinel (process change)

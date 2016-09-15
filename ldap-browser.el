@@ -218,13 +218,18 @@ For obscure reasons, with a star at the beginning of the string the ldap query f
       (let* ((filter (mapconcat (lambda(x)(format "(%s=%s)" x pattern)) fields ""))
 	     (ldap-username (auth-source-user-or-password "login" (car server) "ldap"))
 	     (ldap-password (auth-source-user-or-password "password" (car server) "ldap"))
-	     (cmd (format "%s -h %s -D %s -b %s -w %s (|%s)" ldap-search-args (car server) ldap-username (cdr server) ldap-password filter)))
-	(set-process-sentinel (apply 'start-process "ldapsearch" (current-buffer) "ldapsearch" (split-string cmd)) 'ldap-search-sentinel))
-      )))
+	     (cmd (format "%s -h %s -b %s %s %s (|%s)"
+                          ldap-search-args
+                          (car server)
+                          (cdr server)
+                          (if ldap-username (format "-D %s" ldap-username) "")
+                          (if ldap-password (format "-w %s" ldap-password) "-x")
+                          filter)))
+	(set-process-sentinel (apply 'start-process "ldapsearch" (current-buffer) "ldapsearch" (split-string cmd)) 'ldap-search-sentinel)))))
 
 (defun ldap-browser-search-name (name &optional callback)
   "Search pattern in fields \"displayName\" and \"sn\""
   (interactive (list (read-string "Name: " nil 'ldap-browser-search-history)))
-  (ldap-browser-search-fields name '("displayName" "sn") callback))
+  (ldap-browser-search-fields name '("mail" "sn" "givenName") callback))
 
 (provide 'ldap-browser)

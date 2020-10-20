@@ -31,7 +31,7 @@
   "To be used as a search callback to insert result's formatted email in current buffer"
   (when contact
     (with-current-buffer buffer
-      (insert (format "\"%s\" <%s> " (assoc-default "displayName" contact) (assoc-default "mail" contact))))))
+      (insert (format "\"%s\" <%s> " (assoc-default "cn" contact) (assoc-default "mail" contact))))))
 
 (defun ldap-browser-insert-mail (name)
   "Get a contact's email

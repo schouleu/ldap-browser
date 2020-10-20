@@ -237,6 +237,6 @@ For obscure reasons, with a star at the beginning of the string the ldap query f
 (defun ldap-browser-search-name (name &optional callback)
   "Search pattern in fields \"displayName\" and \"sn\""
   (interactive (list (read-string "Name: " nil 'ldap-browser-search-history)))
-  (ldap-browser-search-fields name '("mail" "sn" "givenName") callback))
+  (ldap-browser-search-fields name '("mail" "sn" "givenName" "uid") callback))
 
 (provide 'ldap-browser)
